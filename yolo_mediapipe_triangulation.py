@@ -21,8 +21,8 @@ import csv
 import math
 
 # ========= 사용자 설정 =========
-NPZ_PATH       = r"C:\Users\user\Documents\캡스턴 디자인\triangulation\calib_out\20250915_163749\stereo\stereo_params_scaled.npz"
-MODEL_PATH     = r"C:\Users\user\Documents\캡스턴 디자인\triangulation\best_6.pt"
+NPZ_PATH       = r"C:\Users\jshkr\OneDrive\문서\Capstone_Code\triangulation\calib_out\20250915_163749\stereo\stereo_params_scaled.npz"
+MODEL_PATH     = r"C:\Users\jshkr\OneDrive\문서\Capstone_Code\triangulation\best_6.pt"
 
 CAM1_INDEX     = 1   # 물리 카메라 인덱스(왼쪽)
 CAM2_INDEX     = 2   # 물리 카메라 인덱스(오른쪽)

@@ -3,13 +3,13 @@ import argparse, time, sys
 import serial
 
 class DualServoController:
-    def __init__(self, port="COM5", baud=115200, timeout=1.0):
+    def __init__(self, port="COM4", baud=115200, timeout=1.0):
         self.ser = serial.Serial(port, baudrate=baud, timeout=timeout)
         # UNO는 포트 열면 리셋되므로 잠깐 대기
         time.sleep(2.0)
         self.ser.reset_input_buffer()
         self.ser.reset_output_buffer()
-
+        
         # 웜업: 상태 한 번 읽어보기
         self.query()
 
@@ -24,13 +24,14 @@ class DualServoController:
             resp = ""
         return resp
 
+    # 기존 함수
     def set_angles(self, pitch=None, yaw=None):
         if pitch is not None and yaw is not None:
-            return self._send(f"S {int(pitch)} {int(yaw)}") # 두 축 동시 설정. S 30 60
+            return self._send(f"S {float(pitch)} {float(yaw)}")
         elif pitch is not None:
-            return self._send(f"P {int(pitch)}") # p 30. pitch만 바꾸기
+            return self._send(f"P {float(pitch)}")
         elif yaw is not None:
-            return self._send(f"Y {int(yaw)}") # y 30. yaw만 바꾸기
+            return self._send(f"Y {float(yaw)}")
         else:
             return "ERR no angles"
 
@@ -40,6 +41,13 @@ class DualServoController:
     def query(self):
         return self._send("Q")
 
+    # 레이저 제어 추가
+    def laser_on(self):
+        return self._send("L 1")
+
+    def laser_off(self):
+        return self._send("L 0")
+
     def close(self):
         try:
             self.ser.close()
@@ -48,12 +56,14 @@ class DualServoController:
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--port", default="COM5")
+    ap.add_argument("--port", default="COM4")
     ap.add_argument("--baud", type=int, default=115200)
-    ap.add_argument("--pitch", type=int)
-    ap.add_argument("--yaw", type=int)
+    ap.add_argument("--pitch", type=float)
+    ap.add_argument("--yaw", type=float)
     ap.add_argument("--center", action="store_true")
     ap.add_argument("--sweep", action="store_true", help="양 축 60↔120도 스윕 테스트")
+    ap.add_argument("--laser_on", action="store_true", help="레이저 켜기")
+    ap.add_argument("--laser_off", action="store_true", help="레이저 끄기")
     args = ap.parse_args()
 
     ctl = DualServoController(args.port, args.baud)
@@ -70,8 +80,11 @@ def main():
             for a in range(120, 59, -5):
                 print(ctl.set_angles(a, a))
                 time.sleep(0.05)
+        if args.laser_on:
+            print(ctl.laser_on())
+        if args.laser_off:
+            print(ctl.laser_off())
 
-        # 마지막 상태 출력
         print(ctl.query())
     finally:
         ctl.close()
