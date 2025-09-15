@@ -20,9 +20,9 @@ while True:
         break
 
     # 두 카메라 해상도가 다를 수 있으니 크기 맞춰주기
-    height = min(frame1.shape[0], frame2.shape[0])
-    frame1 = cv2.resize(frame1, (int(frame1.shape[1] * height / frame1.shape[0]), height))
-    frame2 = cv2.resize(frame2, (int(frame2.shape[1] * height / frame2.shape[0]), height))
+    # height = min(frame1.shape[0], frame2.shape[0])
+    # frame1 = cv2.resize(frame1, (int(frame1.shape[1] * height / frame1.shape[0]), height))
+    # frame2 = cv2.resize(frame2, (int(frame2.shape[1] * height / frame2.shape[0]), height))
 
     # 두 프레임을 가로로 합치기
     combined = np.hstack((frame1, frame2))

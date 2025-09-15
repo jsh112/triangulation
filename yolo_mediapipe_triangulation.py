@@ -19,7 +19,7 @@ import mediapipe as mp
 import csv
 
 # ========= 사용자 설정 =========
-NPZ_PATH       = r"C:\Users\user\Documents\캡스턴 디자인\triangulation\calib_out\first_test\stereo\stereo_params.npz"
+NPZ_PATH       = r"C:\Users\user\Documents\캡스턴 디자인\triangulation\calib_out\20250915_104820\stereo\stereo_params_scaled.npz"
 MODEL_PATH     = r"C:\Users\user\Documents\캡스턴 디자인\triangulation\best_6.pt"  # YOLO 세그 모델 경로
 CAM1_INDEX     = 1   # Left
 CAM2_INDEX     = 2   # Right
@@ -87,8 +87,8 @@ def load_stereo(npz_path):
     S = np.load(npz_path, allow_pickle=True)
     K1, D1 = S["K1"], S["D1"]
     K2, D2 = S["K2"], S["D2"]
-    R1, R2 = S["R1"], S["R2"]
-    P1, P2 = S["P1"], S["P2"]
+    R2, R1 = S["R1"], S["R2"]
+    P2, P1 = S["P1"], S["P2"]
     W, H   = [int(x) for x in S["image_size"]]
     map1x, map1y = cv2.initUndistortRectifyMap(K1, D1, R1, P1, (W, H), cv2.CV_32FC1)
     map2x, map2y = cv2.initUndistortRectifyMap(K2, D2, R2, P2, (W, H), cv2.CV_32FC1)
