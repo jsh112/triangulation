@@ -5,8 +5,8 @@ from pathlib import Path
 # ============ 설정 ============
 PAIRS_DIR   = "captures/pairs"  # 페어 이미지 폴더 (take_a_photo.py가 저장한 곳)
 DATE_FILTER = "20250915"
-PATTERN     = (9, 6)            # 체스보드 "내부 코너" 개수 
-SQUARE_MM   = 26.0              # 한 칸 길이(단위는 mm)
+PATTERN     = (8, 6)            # 체스보드 "내부 코너" 개수 
+SQUARE_MM   = 33.35              # 한 칸 길이(단위는 mm)
 
 RUN_SINGLE  = True              # cam1, cam2 각각 단일 카메라 보정 수행 여부
 RUN_STEREO  = True              # 두 카메라 스테레오 보정 수행 여부
@@ -15,7 +15,7 @@ LEFT_IS_CAM2 = True             # 물리 좌=cam2, 우=cam1 환경일 때 보기
 MARGIN_PX   = 15                # 체스보드 코너 bounding box가 프레임 가장자리에서 떨어져야 하는 최소 마진(px)
 
 # 실측 베이스라인(mm). None이면 스케일 보정 생략
-MEASURED_BASELINE_MM = 358.0  # 예) 103.0  (mm)
+MEASURED_BASELINE_MM = 363.0  # 예) 103.0  (mm)
 # =============================
 def ts():
     # 결과 디렉터리 이름 등에 쓰는 타임스탬프(YYYYmmdd_HHMMSS)

@@ -17,7 +17,7 @@ import queue
 import threading
 
 # ==== 사용자 설정 ====
-chessboard_size = (9, 6)     # 체스보드 "내부 코너" 개수. 나는 10 * 7 짜리니까 내부 코너 9 * 6임.
+chessboard_size = (8, 6)     # 체스보드 "내부 코너" 개수. 나는 10 * 7 짜리니까 내부 코너 9 * 6임.
 display_height = 480         # 보기용 리사이즈 높이
 use_jpeg = True              # True면 JPG, False면 PNG
 jpeg_quality = 95            # JPG 품질(높을수록 용량↑)
@@ -84,6 +84,17 @@ def main():
     cam1 = cv2.VideoCapture(1, cv2.CAP_DSHOW)
     cam2 = cv2.VideoCapture(2, cv2.CAP_DSHOW)
 
+    # 카메라 좌, 우 해상도 다를 수 있는걸 여기서 고정해버려. 그럼 어차피 고정된 해상도의 사진이 저장되니까 캘리브레이션 돌리는데선 이 사진들만 쓰면 됨.
+    W, H, FPS = 1280, 720, 30
+    for cam in (cam1, cam2):
+        cam.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
+        cam.set(cv2.CAP_PROP_FRAME_WIDTH,  W)
+        cam.set(cv2.CAP_PROP_FRAME_HEIGHT, H)
+        cam.set(cv2.CAP_PROP_FPS,          FPS)
+
+    ret1, f1 = cam1.read(); ret2, f2 = cam2.read()
+    print("cam1:", f1.shape, "cam2:", f2.shape)  # (H,W,3) 가 서로 같아야 함
+
     # (선택) 버퍼를 최소화해서 지연 줄이기 – 일부 드라이버만 지원
     cam1.set(cv2.CAP_PROP_BUFFERSIZE, 1)
     cam2.set(cv2.CAP_PROP_BUFFERSIZE, 1)
@@ -111,7 +122,7 @@ def main():
         # 보기용 리사이즈
         disp1 = resize_for_display(frame1, display_height)
         disp2 = resize_for_display(frame2, display_height)
-        combined = np.hstack((disp1, disp2))  # 좌: cam1, 우: cam2
+        combined = np.hstack((disp2, disp2))  # 좌: cam1, 우: cam2
 
         # HUD: 안내 + 저장 큐 길이(현재 저장 작업이 얼마나 쌓였는지)
         hud = combined.copy()

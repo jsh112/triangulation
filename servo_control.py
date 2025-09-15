@@ -1,4 +1,4 @@
-# servo_control.py  (float 각도 호환 버전, 기능 동일)
+# servo_control.py
 import argparse, time, sys
 import serial
 
@@ -25,13 +25,12 @@ class DualServoController:
         return resp
 
     def set_angles(self, pitch=None, yaw=None):
-        # 소수 입력도 그대로 전달 (아두이노가 float 파싱)
         if pitch is not None and yaw is not None:
-            return self._send(f"S {pitch:g} {yaw:g}")      # 두 축 동시 설정. 예: S 30.5 60.25
+            return self._send(f"S {int(pitch)} {int(yaw)}") # 두 축 동시 설정. S 30 60
         elif pitch is not None:
-            return self._send(f"P {pitch:g}")              # pitch만 변경. 예: P 30.5
+            return self._send(f"P {int(pitch)}") # p 30. pitch만 바꾸기
         elif yaw is not None:
-            return self._send(f"Y {yaw:g}")                # yaw만 변경. 예: Y 98.12
+            return self._send(f"Y {int(yaw)}") # y 30. yaw만 바꾸기
         else:
             return "ERR no angles"
 
@@ -51,8 +50,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--port", default="COM5")
     ap.add_argument("--baud", type=int, default=115200)
-    ap.add_argument("--pitch", type=float)  # ← float로 변경
-    ap.add_argument("--yaw", type=float)    # ← float로 변경
+    ap.add_argument("--pitch", type=int)
+    ap.add_argument("--yaw", type=int)
     ap.add_argument("--center", action="store_true")
     ap.add_argument("--sweep", action="store_true", help="양 축 60↔120도 스윕 테스트")
     args = ap.parse_args()
