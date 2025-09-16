@@ -43,10 +43,10 @@ class DualServoController:
 
     # 레이저 제어 추가
     def laser_on(self):
-        return self._send("L 1")
+        return self._send("R")
 
     def laser_off(self):
-        return self._send("L 0")
+        return self._send("Z")
 
     def close(self):
         try:
@@ -65,6 +65,8 @@ def main():
     ap.add_argument("--laser_on", action="store_true", help="레이저 켜기")
     ap.add_argument("--laser_off", action="store_true", help="레이저 끄기")
     args = ap.parse_args()
+    args.port = "COM4"
+    args.baud = 115200
 
     ctl = DualServoController(args.port, args.baud)
 
