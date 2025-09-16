@@ -161,7 +161,7 @@ def extract_holds_with_indices(frame_bgr, model, selected_class_name=None,
                       "contour": contour, "center": (cx, cy), "conf": conf})
     if not holds: return []
     enriched = [{"cx": h_["center"][0], "cy": h_["center"][1], **h_} for h_ in holds]
-    enriched.sort(key=lambda h: h["cy"])
+    enriched.sort(key=lambda h: -h["cy"])
     rows, cur = [], [enriched[0]]
     for h_ in enriched[1:]:
         if abs(h_["cy"] - cur[0]["cy"]) < row_tol: cur.append(h_)
@@ -201,7 +201,7 @@ def assign_indices(holds, row_tol=50):
     if not holds:
         return []
     enriched = [{"cx": h["center"][0], "cy": h["center"][1], **h} for h in holds]
-    enriched.sort(key=lambda h: h["cy"])
+    enriched.sort(key=lambda h: -h["cy"])
     rows, cur = [], [enriched[0]]
     for h_ in enriched[1:]:
         if abs(h_["cy"] - cur[0]["cy"]) < row_tol: cur.append(h_)
