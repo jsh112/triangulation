@@ -21,7 +21,7 @@ import csv
 import math
 
 # ========= 사용자 설정 =========
-NPZ_PATH       = r"C:\Users\user\Documents\캡스턴 디자인\triangulation\calib_out\20250915_104820\stereo\stereo_params_scaled.npz"
+NPZ_PATH       = r"C:\Users\user\Documents\캡스턴 디자인\triangulation\calib_out\old_camera_same\stereo\stereo_params_scaled.npz"
 MODEL_PATH     = r"C:\Users\user\Documents\캡스턴 디자인\triangulation\best_6.pt"
 
 CAM1_INDEX     = 1   # 물리 카메라 인덱스(왼쪽)
@@ -31,7 +31,7 @@ CAM2_INDEX     = 2   # 물리 카메라 인덱스(오른쪽)
 SWAP_INPUT     = False
 
 # 화면(UI)만 좌/우 바꿔서 표시할지 (오버레이/텍스트 오프셋 자동 정합)
-SWAP_DISPLAY   = True
+SWAP_DISPLAY   = False
 
 WINDOW_NAME    = "Rectified L | R  (10f merged, LEFT-origin O; MP Left, Auto-ID0)"
 SHOW_GRID      = False
@@ -55,16 +55,8 @@ Y_UP_IS_NEGATIVE = True       # 위가 -y
 
 # ---- “ID0로 조준”을 실제로 보낼지 옵션 ----
 SEND_SERIAL      = False           # True로 바꾸면 시리얼 송신
-SERIAL_PORT      = "COM5"  # 사용자 환경에 맞게 변경          # 보드 포트
+SERIAL_PORT      = "COM6"          # 보드 포트
 SERIAL_BAUD      = 115200
-
-# ---- 순차 구동 옵션 (홀드 idx 오름차순으로 이동) ----
-DRIVE_SEQUENCE_ON_START = True     # True면 초기 매칭 후 연속으로 모두 조준
-SEQ_ORDER_ASC           = True     # True: 0->1->2..., False: 큰 idx->작은 idx
-SEQ_DWELL_SEC           = 0.35     # 각 타겟에서 잠깐 머무는 시간
-SEQ_STEP_DEG            = 3.0      # 램핑용 스텝 크기(도). 0 or None이면 램핑 없이 바로 점프
-SEQ_STEP_DELAY_SEC      = 0.02     # 스텝 사이 대기
-
 
 # 간단 오프셋 보정(현장 튜닝)
 YAW_OFFSET_DEG   = 0.0
@@ -133,13 +125,8 @@ def open_cams(idx1, idx2, size):
     cap2 = cv2.VideoCapture(idx2, cv2.CAP_DSHOW)
     cap1.set(cv2.CAP_PROP_FRAME_WIDTH,  W); cap1.set(cv2.CAP_PROP_FRAME_HEIGHT, H)
     cap2.set(cv2.CAP_PROP_FRAME_WIDTH,  W); cap2.set(cv2.CAP_PROP_FRAME_HEIGHT, H)
-    if not cap1.isOpened():
-        raise SystemExit("카메라 1를 열 수 없습니다. 인덱스/연결 확인.")
-    elif not cap2.isOpened():
-        raise SystemExit("카메라 2를 열 수 없습니다. 인덱스/연결 확인.")
-    elif not cap1.isOpened() and not cap2.isOpened():
-        raise SystemExit("둘다 열 수 없습니다. 인덱스/연결 확인.")
-
+    if not cap1.isOpened() or not cap2.isOpened():
+        raise SystemExit("카메라를 열 수 없습니다. 인덱스/연결 확인.")
     return cap1, cap2
 
 def rectify(frame, mx, my, size):
@@ -267,53 +254,6 @@ def deg_to_us(angle, min_deg, max_deg, min_us, max_us):
     angle = float(np.clip(angle, min_deg, max_deg))
     return int(np.interp(angle, [min_deg, max_deg], [min_us, max_us]))
 
-
-def send_servo_abs_us(ser, yaw_us, pitch_us, verbose=True):
-    """Send absolute microsecond commands to yaw/pitch. Protocol: 'Y<us>', 'P<us>' per line."""
-    try:
-        ser.write(f"Y{int(yaw_us)}\n".encode()); 
-        ser.write(f"P{int(pitch_us)}\n".encode())
-        if verbose:
-            print(f"[Serial] Y={int(yaw_us)}us, P={int(pitch_us)}us")
-    except Exception as e:
-        print(f"[Serial][ERR] send failed: {e}")
-
-def ramp_servo_to_deg(ser, cur_yaw_deg, cur_pitch_deg, tgt_yaw_deg, tgt_pitch_deg, step_deg=3.0, step_delay=0.02):
-    """Linear ramp in degree space; converts each step to microseconds and sends absolute commands."""
-    if not step_deg or step_deg <= 0:
-        # Jump directly
-        yu = deg_to_us(tgt_yaw_deg,   SERVO['YAW_MIN_DEG'],   SERVO['YAW_MAX_DEG'],   SERVO['YAW_MIN_US'],   SERVO['YAW_MAX_US'])
-        pu = deg_to_us(tgt_pitch_deg, SERVO['PITCH_MIN_DEG'], SERVO['PITCH_MAX_DEG'], SERVO['PITCH_MIN_US'], SERVO['PITCH_MAX_US'])
-        send_servo_abs_us(ser, yu, pu)
-        return tgt_yaw_deg, tgt_pitch_deg
-
-    import time as _t
-    y = float(cur_yaw_deg)
-    p = float(cur_pitch_deg)
-    while True:
-        dy = tgt_yaw_deg   - y
-        dp = tgt_pitch_deg - p
-        if abs(dy) <= step_deg and abs(dp) <= step_deg:
-            y = tgt_yaw_deg; p = tgt_pitch_deg
-            yu = deg_to_us(y, SERVO['YAW_MIN_DEG'], SERVO['YAW_MAX_DEG'], SERVO['YAW_MIN_US'], SERVO['YAW_MAX_US'])
-            pu = deg_to_us(p, SERVO['PITCH_MIN_DEG'], SERVO['PITCH_MAX_DEG'], SERVO['PITCH_MIN_US'], SERVO['PITCH_MAX_US'])
-            send_servo_abs_us(ser, yu, pu, verbose=False)
-            break
-        # step toward target
-        if abs(dy) > step_deg:
-            y += step_deg if dy > 0 else -step_deg
-        else:
-            y = tgt_yaw_deg
-        if abs(dp) > step_deg:
-            p += step_deg if dp > 0 else -step_deg
-        else:
-            p = tgt_pitch_deg
-        yu = deg_to_us(y, SERVO['YAW_MIN_DEG'], SERVO['YAW_MAX_DEG'], SERVO['YAW_MIN_US'], SERVO['YAW_MAX_US'])
-        pu = deg_to_us(p, SERVO['PITCH_MIN_DEG'], SERVO['PITCH_MAX_DEG'], SERVO['PITCH_MIN_US'], SERVO['PITCH_MAX_US'])
-        send_servo_abs_us(ser, yu, pu, verbose=False)
-        _t.sleep(max(0.0, float(step_delay)))
-    print(f"[Serial][ramp] to yaw={y:.2f}°, pitch={p:.2f}°")
-    return y, p
 def xoff_for(side, W, swap):
     # side: "L" 또는 "R" (왼쪽 카메라/오른쪽 카메라 프레임)
     if side == "L":
@@ -431,7 +371,7 @@ def main():
     for i, j, dyaw, dpitch, d3d in angle_deltas:
         print(f"  {i:>2}→{j:<2} :  {dyaw:+6.2f}°, {dpitch:+6.2f}°, {d3d:6.2f}°")
 
-        # ====== ⬇️ 여기서 '시작하면 0번 인덱스로 조준' 처리됨 ⬇️ ======
+    # ====== ⬇️ 여기서 '시작하면 0번 인덱스로 조준' 처리됨 ⬇️ ======
     target_id = 0 if 0 in by_id else (min(by_id.keys()) if by_id else None)
     first_target = by_id.get(target_id) if target_id is not None else None
 
@@ -464,44 +404,11 @@ def main():
                 ser.write(f"P{pitch_us}\n".encode())
                 ser.close()
                 print(f"[Serial] Sent: Y={yaw_us}us, P={pitch_us}us")
-
-                # ---- (NEW) 순차 구동: 공통 ID들을 인덱스 순서대로 모두 조준 ----
-                if DRIVE_SEQUENCE_ON_START:
-                    try:
-                        ser = serial.Serial(SERIAL_PORT, SERIAL_BAUD, timeout=1)
-                        _t.sleep(0.5)
-                        # 현재 시작 각도는 방금 first_target으로 설정했다고 가정
-                        cur_yaw_deg   = float(yaw_cmd)
-                        cur_pitch_deg = float(pitch_cmd)
-                        order_ids = sorted(common_ids) if SEQ_ORDER_ASC else sorted(common_ids, reverse=True)
-                        for hid2 in order_ids:
-                            mr = by_id.get(hid2)
-                            if mr is None: 
-                                continue
-                            yaw_est2   = mr['yaw_deg']; pitch_est2 = mr['pitch_deg']
-                            if USE_LINEAR_CAL:
-                                yaw_cmd2   = A11*yaw_est2 + A12*pitch_est2 + B1
-                                pitch_cmd2 = A21*yaw_est2 + A22*pitch_est2 + B2
-                            else:
-                                yaw_cmd2   = yaw_est2   + YAW_OFFSET_DEG
-                                pitch_cmd2 = pitch_est2 + PITCH_OFFSET_DEG
-                            # 램핑 이동 또는 즉시 이동
-                            cur_yaw_deg, cur_pitch_deg = ramp_servo_to_deg(
-                                ser, cur_yaw_deg, cur_pitch_deg, yaw_cmd2, pitch_cmd2,
-                                step_deg=SEQ_STEP_DEG, step_delay=SEQ_STEP_DELAY_SEC
-                            )
-                            # 도달 후 dwell
-                            _t.sleep(max(0.0, float(SEQ_DWELL_SEC)))
-                        ser.close()
-                        print("[Serial] 순차 구동 완료.")
-                    except Exception as e:
-                        print(f"[Serial][ERR] 순차 구동 실패: {e}")
             except Exception as e:
                 print(f"[Serial ERROR] {e}")
     else:
         print("[FIRST TARGET] 선택할 수 있는 타겟이 없습니다.")
     # ====== ⬆️ 여기까지가 '자동 ID0 조준' 로직 ⬆️ ======
-
 
     # ==== MediaPipe Pose (왼쪽 카메라 전용) ====
     mp_pose = mp.solutions.pose
